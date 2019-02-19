@@ -1,9 +1,27 @@
-var parser = (function() {
+const parser = (function() {
 
-	var parser = {};
+	let parser = {};
 
 
-	var TokenType = {
+	parser.ParserError = function(message) {
+		this.message = message || '';
+	};
+
+
+	parser.SyntaxError = function(token) {
+		this.message = 'Syntax Error.';
+		let location = ' Something is missing or wrongly placed ';
+
+		if (token instanceof Token) {
+			this.message += location + 'before the token: '
+				+ JSON.stringify(token.data);
+		} else if (token instanceof Mark) {
+			this.message += location + 'in the end of a statement.';
+		}
+	};
+
+
+	let TokenType = {
 		BRACKET: {
 			LEFT: '(',
 			RIGHT: ')'
@@ -29,7 +47,7 @@ var parser = (function() {
 	}
 
 
-	var MarkType = {
+	let MarkType = {
 		END: '_end_',
 		RULE: '_rule_'
 	};
@@ -54,13 +72,13 @@ var parser = (function() {
 	}
 
 	Table.prototype.read = function (stack, input) {
-		var map = function (item) {
+		let map = function (item) {
 			return ((item instanceof Token) || (item instanceof Mark)) ? item.type : '';
 		};
 
-		var row = this.map.indexOf(map(stack));
-		var column = this.map.indexOf(map(input));
-		var cell;
+		let row = this.map.indexOf(map(stack));
+		let column = this.map.indexOf(map(input));
+		let cell;
 
 		if ((row === -1) || (column === -1)) {
 			return '';
@@ -77,17 +95,17 @@ var parser = (function() {
 
 	function Rule(items, translation) {
 		if (!(items instanceof Array)) {
-			throw '\'items\' should be an instance of Array.';
+			throw new parser.ParserError('\'items\' should be an instance of Array.');
 		}
 
 		if (translation && !(translation instanceof Array)) {
-			throw '\'translation\' should be an instance of Array.';
+			throw new parser.ParserError('\'translation\' should be an instance of Array.');
 		}
 
 		this.items = [];
 		this.translation = translation || [];
 
-		for (var i = 0; i < items.length; i++) {
+		for (let i = 0; i < items.length; i++) {
 			if ((items[i] instanceof Token) || (items[i] instanceof Rule)) {
 				this.items.push(items[i]);
 			} else {
@@ -97,10 +115,10 @@ var parser = (function() {
 	}
 
 	Rule.prototype.export = function () {
-		var output = [];
+		let output = [];
 
-		for (var i = 0; i < this.translation.length; i++) {
-			var j = this.translation[i];
+		for (let i = 0; i < this.translation.length; i++) {
+			let j = this.translation[i];
 
 			if (this.items[j] instanceof Token) {
 				output.push(this.items[j].data);
@@ -121,7 +139,7 @@ var parser = (function() {
 			return false;
 		}
 
-		for (var i = 0; i < this.items.length; i++) {
+		for (let i = 0; i < this.items.length; i++) {
 			if ((this.items[i] instanceof Token)
 				&& (rule.items[i] instanceof Token)
 				&& (this.items[i].type !== rule.items[i].type)
@@ -155,7 +173,7 @@ var parser = (function() {
 
 	RuleSet.prototype.add = function (rule) {
 		if (!(rule instanceof Rule)) {
-			throw '\'rule\' should be an instance of Rule.';
+			throw new parser.ParserError('\'rule\' should be an instance of Rule.');
 		}
 
 		this.rules.push(rule);
@@ -165,10 +183,10 @@ var parser = (function() {
 
 	RuleSet.prototype.find = function (rule) {
 		if (!(rule instanceof Rule)) {
-			throw '\'rule\' should be an instance of Rule.';
+			throw new parser.ParserError('\'rule\' should be an instance of Rule.');
 		}
 
-		for (var i = 0; i < this.rules.length; i++) {
+		for (let i = 0; i < this.rules.length; i++) {
 			if (this.rules[i].match(rule)) {
 				return this.rules[i];
 			}
@@ -203,7 +221,7 @@ var parser = (function() {
 			return null;
 		}
 
-		for (var i = this.stack.length - 1; i >= 0; i--) {
+		for (let i = this.stack.length - 1; i >= 0; i--) {
 			if (this.stack[i] instanceof Token) {
 				return this.stack[i];
 			} else if ((this.stack[i] instanceof Mark)
@@ -221,9 +239,9 @@ var parser = (function() {
 			return;
 		}
 
-		var mark = new Mark(MarkType.RULE);
+		let mark = new Mark(MarkType.RULE);
 
-		for (var i = this.stack.length - 1; i >= 0; i--) {
+		for (let i = this.stack.length - 1; i >= 0; i--) {
 			if (this.stack[i] instanceof Token) {
 				this.stack.splice(i + 1, 0, mark);
 				return;
@@ -241,11 +259,11 @@ var parser = (function() {
 			return null;
 		}
 
-		for (var i = this.stack.length - 1; i >= 0; i--) {
+		for (let i = this.stack.length - 1; i >= 0; i--) {
 			if ((this.stack[i] instanceof Mark)
 				&& (this.stack[i].type === MarkType.RULE)
 			) {
-				var items = this.stack.slice(i + 1);
+				let items = this.stack.slice(i + 1);
 				return new Rule(items);
 			}
 		}
@@ -255,14 +273,14 @@ var parser = (function() {
 
 	Stack.prototype.replaceRule = function (rule) {
 		if (!(rule instanceof Rule)) {
-			throw '\'rule\' should be an instance of Rule.';
+			throw new parser.ParserError('\'rule\' should be an instance of Rule.');
 		}
 
 		if (this.isEmpty()) {
 			return;
 		}
 
-		for (var i = this.stack.length - 1; i >= 0; i--) {
+		for (let i = this.stack.length - 1; i >= 0; i--) {
 			if ((this.stack[i] instanceof Mark)
 				&& (this.stack[i].type === MarkType.RULE)
 			) {
@@ -273,7 +291,7 @@ var parser = (function() {
 	};
 
 
-	var rules = new RuleSet();
+	let rules = new RuleSet();
 
 	rules.add(new Rule([TokenType.ID, TokenType.AND, TokenType.ID], [0, 2, 1]))
 		 .add(new Rule([TokenType.ID, TokenType.OR, TokenType.ID], [0, 2, 1]))
@@ -281,27 +299,28 @@ var parser = (function() {
 		 .add(new Rule([TokenType.ID], [0]));
 
 
-	var stack = new Stack();
+	let stack = new Stack();
 
 	stack.push(new Mark(MarkType.END));
 
 
-	var table = new Table();
+	let table = new Table();
 
 
 	function analyze(input) {
 		if (!(input instanceof Array)) {
-			throw '\'input\' should be an instance of Array.';
+			throw new parser.ParserError('\'input\' should be an instance of Array.');
 		}
 
-		var s, i, t;
-		var rule, pattern;
+		let s, i, t, last_i;
+		let rule, pattern;
 
 		i = input.shift();
 
 		while(1) {
 			s = stack.readTerminal();
 			t = table.read(s, i);
+			last_i = i;
 
 			if (((s instanceof Mark) && (s.type === MarkType.END))
 				&& ((i instanceof Mark) && (i.type === MarkType.END))
@@ -324,10 +343,10 @@ var parser = (function() {
 					rule.translation = pattern.translation;
 					stack.replaceRule(rule);
 				} else {
-					throw 'Syntax Error.';
+					throw new parser.SyntaxError(last_i);
 				}
 			} else {
-				throw 'Syntax Error.';
+				throw new parser.SyntaxError(last_i);
 			}
 		}
 
@@ -339,13 +358,13 @@ var parser = (function() {
 
 	parser.run = function (expression) {
 		if (!(expression instanceof Array)) {
-			throw '\'expression\' should be an instance of Array.';
+			throw new parser.ParserError('\'expression\' should be an instance of Array.');
 		}
 
-		var input = [];
-		var rule;
+		let input = [];
+		let rule;
 
-		for (var i = 0; i < expression.length; i++) {
+		for (let i = 0; i < expression.length; i++) {
 			input.push(new Token(expression[i]));
 		}
 
@@ -354,7 +373,7 @@ var parser = (function() {
 		rule = analyze(input);
 
 		if (rule === null) {
-			throw 'Parser Error.'
+			throw new parser.ParserError('Unexpected happen.');
 		}
 
 		return rule.export();
@@ -364,3 +383,5 @@ var parser = (function() {
 	return parser;
 
 })();
+
+export { parser };
