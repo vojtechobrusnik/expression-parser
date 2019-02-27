@@ -299,9 +299,7 @@ const parser = (function() {
 		 .add(new Rule([TokenType.ID], [0]));
 
 
-	let stack = new Stack();
-
-	stack.push(new Mark(MarkType.END));
+	let stack;
 
 
 	let table = new Table();
@@ -363,6 +361,8 @@ const parser = (function() {
 
 		let input = [];
 		let rule;
+		stack = new Stack();
+		stack.push(new Mark(MarkType.END));
 
 		for (let i = 0; i < expression.length; i++) {
 			input.push(new Token(expression[i]));
